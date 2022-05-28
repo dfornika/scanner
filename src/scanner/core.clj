@@ -110,10 +110,20 @@
   (report! line "" message db))
 
 (defn scan-token
-  [char]
-  (case char
-    \( {:token-type :left-paren :lexeme "("}
-    
+  [current-char next-char]
+  (case current-char
+    \( {:token-type :left-paren  :lexeme "("}
+    \) {:token-type :right-paren :lexeme ")"}
+    \{ {:token-type :left-brace  :lexeme "{"}
+    \} {:token-type :right-brace :lexeme "}"}
+    \, {:token-type :comma       :lexeme ","}
+    \. {:token-type :dot         :lexeme "."}
+    \- {:token-type :minus       :lexeme "-"}
+    \+ {:token-type :plus        :lexeme "+"}
+    \; {:token-type :semicolon   :lexeme ";"}
+    \* {:token-type :star        :lexeme "*"}
+    \! (if (= next-char \=) {:token-type :bang-equal :lexeme "!="} {:token-type :bang :lexeme "!"})
+    nil
   ))
 
 (defn scan-tokens
@@ -122,8 +132,10 @@
          line 0
          remaining-source source]
     (if (empty? remaining-source)
-      tokens
-      (recur (conj tokens (first remaining-source))
+      (conj tokens {:token-type :eof :lexeme ""})
+      (recur (if-some [t (scan-token (first remaining-source) (second remaining-source))]
+               (conj tokens t)
+               tokens)
              line
              (apply str (rest remaining-source))))))
 
