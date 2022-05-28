@@ -141,7 +141,8 @@
 
 (defn run
   [source]
-  (println source))
+  (let [tokens (scan-tokens source)]
+    (println tokens)))
 
 
 (defn run-file
@@ -152,7 +153,12 @@
 
 (defn run-prompt
   [db]
-  )
+  (loop [line ""]
+    (print "> ")
+    (flush)
+    (let [line (read-line)]
+      (run line))
+    (recur "")))
 
 (defn -main
   ""

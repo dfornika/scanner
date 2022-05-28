@@ -20,3 +20,14 @@ The `scan-tokens` function can take a string of symbols and convert them to toke
  {:token-type :star, :lexeme "*"}
  {:token-type :eof, :lexeme ""}]
 ```
+
+An executable uberjar can be built using the `build.sh` script. This requires the clojure command-line tool (`clj`).
+Running the uberjar with no arguments will give a prompt that will echo back the tokenized input.
+
+```
+$ java -jar scanner.jar
+> !
+[{:token-type :bang, :lexeme !} {:token-type :eof, :lexeme }]
+> ()
+[{:token-type :left-paren, :lexeme (} {:token-type :right-paren, :lexeme )} {:token-type :eof, :lexeme }]
+```
