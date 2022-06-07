@@ -110,7 +110,7 @@
   (report! line "" message db))
 
 (defn scan-token
-  [current-char next-char]
+  [current-char remaining-chars]
   (case current-char
     \( {:token-type :left-paren  :lexeme "("}
     \) {:token-type :right-paren :lexeme ")"}
@@ -122,32 +122,32 @@
     \+ {:token-type :plus        :lexeme "+"}
     \; {:token-type :semicolon   :lexeme ";"}
     \* {:token-type :star        :lexeme "*"}
-    \! (if (= next-char \=) {:token-type :bang-equal :lexeme "!="} {:token-type :bang :lexeme "!"})
+    \! (if (= (first remaining-chars) \=) {:token-type :bang-equal :lexeme "!="} {:token-type :bang :lexeme "!"})
+    \/ (if (= (first remaining-chars) \/) nil {:token-type :slash :lexeme "/"})
     nil
   ))
 
 (defn scan-tokens
-  [source]
+  [source db]
   (loop [tokens []
-         line 0
          remaining-source source]
     (if (empty? remaining-source)
       (conj tokens {:token-type :eof :lexeme ""})
-      (recur (if-some [t (scan-token (first remaining-source) (second remaining-source))]
-               (conj tokens t)
-               tokens)
-             line
-             (apply str (rest remaining-source))))))
+      (recur (let [current-char (first remaining-source)]
+                 (if-some [t (scan-token current-char (rest remaining-source))]
+                   (conj tokens t)
+                   tokens))
+                 (rest remaining-source)))))
 
 (defn run
-  [source]
-  (let [tokens (scan-tokens source)]
+  [source db]
+  (let [tokens (scan-tokens source db)]
     (println tokens)))
 
 
 (defn run-file
   [path db]
-  (run (slurp path))
+  (run (slurp path) db)
   (if (:had-error db)
     (System/exit 65)))
 
@@ -157,7 +157,7 @@
     (print "> ")
     (flush)
     (let [line (read-line)]
-      (run line))
+      (run line db))
     (recur "")))
 
 (defn -main
