@@ -2,7 +2,9 @@
   (:gen-class))
 
 
-(defonce db (atom {:had-error false}))
+(defonce db (atom {:had-error false
+                   :current-char 0
+                   :current-line 0}))
 
 
 (def token-types #{;; single chars
@@ -110,39 +112,47 @@
   (report! line "" message db))
 
 (defn scan-token
-  [current-char remaining-chars]
-  (case current-char
-    \( {:token-type :left-paren  :lexeme "("}
-    \) {:token-type :right-paren :lexeme ")"}
-    \{ {:token-type :left-brace  :lexeme "{"}
-    \} {:token-type :right-brace :lexeme "}"}
-    \, {:token-type :comma       :lexeme ","}
-    \. {:token-type :dot         :lexeme "."}
-    \- {:token-type :minus       :lexeme "-"}
-    \+ {:token-type :plus        :lexeme "+"}
-    \; {:token-type :semicolon   :lexeme ";"}
-    \* {:token-type :star        :lexeme "*"}
-    \! (if (= (first remaining-chars) \=) {:token-type :bang-equal :lexeme "!="} {:token-type :bang :lexeme "!"})
-    \/ (if (= (first remaining-chars) \/) nil {:token-type :slash :lexeme "/"})
-    nil
+  [remaining-chars]
+  (case (first remaining-chars)
+    \( [{:token-type :left-paren  :lexeme "("} (rest remaining-chars)]
+    \) [{:token-type :right-paren :lexeme ")"} (rest remaining-chars)]
+    \{ [{:token-type :left-brace  :lexeme "{"} (rest remaining-chars)]
+    \} [{:token-type :right-brace :lexeme "}"} (rest remaining-chars)]
+    \, [{:token-type :comma       :lexeme ","} (rest remaining-chars)]
+    \. [{:token-type :dot         :lexeme "."} (rest remaining-chars)]
+    \- [{:token-type :minus       :lexeme "-"} (rest remaining-chars)]
+    \+ [{:token-type :plus        :lexeme "+"} (rest remaining-chars)]
+    \; [{:token-type :semicolon   :lexeme ";"} (rest remaining-chars)]
+    \* [{:token-type :star        :lexeme "*"} (rest remaining-chars)]
+    \! (if (= (second remaining-chars) \=)
+         [{:token-type :bang-equal :lexeme "!="} (rest (rest remaining-chars))]
+         [{:token-type :bang :lexeme "!"} (rest remaining-chars)])
+    \/ (if (= (second remaining-chars) \/)
+         [nil (rest (drop-while #(not= \n) remaining-chars))]
+         [{:token-type :slash :lexeme "/"} (rest remaining-chars)])
+    [nil (rest remaining-chars)]
   ))
 
 (defn scan-tokens
-  [source db]
-  (loop [tokens []
-         remaining-source source]
-    (if (empty? remaining-source)
-      (conj tokens {:token-type :eof :lexeme ""})
-      (recur (let [current-char (first remaining-source)]
-                 (if-some [t (scan-token current-char (rest remaining-source))]
-                   (conj tokens t)
-                   tokens))
-                 (rest remaining-source)))))
+  [source-input db]
+  (loop [partially-tokenized {:tokens []
+                              :source source-input}]
+    (if (empty? (:source partially-tokenized))
+      (conj (:tokens partially-tokenized) {:token-type :eof :lexeme ""})
+      (recur (let [[new-token remaining-source] (scan-token (:source partially-tokenized))
+                   existing-tokens (:tokens partially-tokenized)]
+               (if-some [t new-token]
+                 {:tokens (conj existing-tokens t)
+                  :source remaining-source}
+                 {:tokens existing-tokens
+                  :source remaining-source}
+                 ))))))
 
 (defn run
   [source db]
   (let [tokens (scan-tokens source db)]
-    (println tokens)))
+    (doseq [t tokens]
+      (println t))))
 
 
 (defn run-file
