@@ -115,33 +115,55 @@
 
 
 (defn scan-token
-  [remaining-chars]
+  [remaining-chars db]
   (case (first remaining-chars)
-    \( [{:token-type :left-paren  :lexeme "("} (rest remaining-chars)]
-    \) [{:token-type :right-paren :lexeme ")"} (rest remaining-chars)]
-    \{ [{:token-type :left-brace  :lexeme "{"} (rest remaining-chars)]
-    \} [{:token-type :right-brace :lexeme "}"} (rest remaining-chars)]
-    \, [{:token-type :comma       :lexeme ","} (rest remaining-chars)]
-    \. [{:token-type :dot         :lexeme "."} (rest remaining-chars)]
-    \- [{:token-type :minus       :lexeme "-"} (rest remaining-chars)]
-    \+ [{:token-type :plus        :lexeme "+"} (rest remaining-chars)]
-    \; [{:token-type :semicolon   :lexeme ";"} (rest remaining-chars)]
-    \* [{:token-type :star        :lexeme "*"} (rest remaining-chars)]
+    \( (do (swap! db update :current-char inc)
+           [{:token-type :left-paren  :lexeme "("} (rest remaining-chars)])
+    \) (do (swap! db update :current-char inc)
+           [{:token-type :right-paren :lexeme ")"} (rest remaining-chars)])
+    \{ (do (swap! db update :current-char inc)
+           [{:token-type :left-brace  :lexeme "{"} (rest remaining-chars)])
+    \} (do (swap! db update :current-char inc)
+           [{:token-type :right-brace :lexeme "}"} (rest remaining-chars)])
+    \, (do (swap! db update :current-char inc)
+           [{:token-type :comma       :lexeme ","} (rest remaining-chars)])
+    \. (do (swap! db update :current-char inc)
+           [{:token-type :dot         :lexeme "."} (rest remaining-chars)])
+    \- (do (swap! db update :current-char inc)
+           [{:token-type :minus       :lexeme "-"} (rest remaining-chars)])
+    \+ (do (swap! db update :current-char inc)
+           [{:token-type :plus        :lexeme "+"} (rest remaining-chars)])
+    \; (do (swap! db update :current-char inc)
+           [{:token-type :semicolon   :lexeme ";"} (rest remaining-chars)])
+    \* (do (swap! db update :current-char inc)
+           [{:token-type :star        :lexeme "*"} (rest remaining-chars)])
     \! (if (= (second remaining-chars) \=)
-         [{:token-type :bang-equal :lexeme "!="} (rest (rest remaining-chars))]
-         [{:token-type :bang :lexeme "!"} (rest remaining-chars)])
+         (do (swap! db update :current-char inc)
+             (swap! db update :current-char inc)
+             [{:token-type :bang-equal :lexeme "!="} (rest (rest remaining-chars))])
+         (do (swap! db update :current-char inc)
+             [{:token-type :bang :lexeme "!"} (rest remaining-chars)]))
     \= (if (= (second remaining-chars) \=)
-         [{:token-type :equal :lexeme "=="} (rest (rest remaining-chars))]
-         [{:token-type :assign :lexeme "="} (rest remaining-chars)])
+         (do (swap! db update :current-char inc)
+             (swap! db update :current-char inc)
+             [{:token-type :equal :lexeme "=="} (rest (rest remaining-chars))])
+         (do (swap! db update :current-char inc)
+             [{:token-type :assign :lexeme "="} (rest remaining-chars)]))
     \< (if (= (second remaining-chars) \=)
-         [{:token-type :less-equal :lexeme "<="} (rest (rest remaining-chars))]
-         [{:token-type :less :lexeme "<"} (rest remaining-chars)])
+         (do (swap! db update :current-char inc)
+             (swap! db update :current-char inc)
+             [{:token-type :less-equal :lexeme "<="} (rest (rest remaining-chars))])
+         (do (swap! db update :current-char inc)
+             [{:token-type :less :lexeme "<"} (rest remaining-chars)]))
     \> (if (= (second remaining-chars) \=)
-         [{:token-type :greater-equal :lexeme ">="} (rest (rest remaining-chars))]
-         [{:token-type :greater :lexeme ">"} (rest remaining-chars)])
+         (do (swap! db update :current-char inc)
+             [{:token-type :greater-equal :lexeme ">="} (rest (rest remaining-chars))])
+         (do (swap! db update :current-char inc)
+             [{:token-type :greater :lexeme ">"} (rest remaining-chars)]))
     \/ (if (= (second remaining-chars) \/)
          [nil (rest (drop-while #(not= \n %) remaining-chars))]
-         [{:token-type :slash :lexeme "/"} (rest remaining-chars)])
+         (do (swap! db update :current-char inc)
+             [{:token-type :slash :lexeme "/"} (rest remaining-chars)]))
     nil [nil (rest remaining-chars)]
     [nil (rest remaining-chars)]
   ))
@@ -153,7 +175,7 @@
                               :source source-input}]
     (if (empty? (:source partially-tokenized))
       (conj (:tokens partially-tokenized) {:token-type :eof :lexeme ""})
-      (recur (let [[new-token remaining-source] (scan-token (:source partially-tokenized))
+      (recur (let [[new-token remaining-source] (scan-token (:source partially-tokenized) db)
                    existing-tokens (:tokens partially-tokenized)]
                (if-some [t new-token]
                  {:tokens (conj existing-tokens t)
@@ -173,6 +195,7 @@
 (defn run-file
   [path db]
   (run (slurp path) db)
+  (prn @db)
   (if (:had-error db)
     (System/exit 65)))
 
