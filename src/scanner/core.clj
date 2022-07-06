@@ -52,6 +52,7 @@
                    :eof
                    })
 
+
 (defn token-type->lexeme
   ""
   []
@@ -107,9 +108,11 @@
     (println (str "[line " line "] Error" where ": " message )))
   (swap! db assoc :had-error true))
 
+
 (defn error!
   [line message db]
   (report! line "" message db))
+
 
 (defn scan-token
   [remaining-chars]
@@ -127,11 +130,22 @@
     \! (if (= (second remaining-chars) \=)
          [{:token-type :bang-equal :lexeme "!="} (rest (rest remaining-chars))]
          [{:token-type :bang :lexeme "!"} (rest remaining-chars)])
+    \= (if (= (second remaining-chars) \=)
+         [{:token-type :equal :lexeme "=="} (rest (rest remaining-chars))]
+         [{:token-type :assign :lexeme "="} (rest remaining-chars)])
+    \< (if (= (second remaining-chars) \=)
+         [{:token-type :less-equal :lexeme "<="} (rest (rest remaining-chars))]
+         [{:token-type :less :lexeme "<"} (rest remaining-chars)])
+    \> (if (= (second remaining-chars) \=)
+         [{:token-type :greater-equal :lexeme ">="} (rest (rest remaining-chars))]
+         [{:token-type :greater :lexeme ">"} (rest remaining-chars)])
     \/ (if (= (second remaining-chars) \/)
-         [nil (rest (drop-while #(not= \n) remaining-chars))]
+         [nil (rest (drop-while #(not= \n %) remaining-chars))]
          [{:token-type :slash :lexeme "/"} (rest remaining-chars)])
+    nil [nil (rest remaining-chars)]
     [nil (rest remaining-chars)]
   ))
+
 
 (defn scan-tokens
   [source-input db]
@@ -148,6 +162,7 @@
                   :source remaining-source}
                  ))))))
 
+
 (defn run
   [source db]
   (let [tokens (scan-tokens source db)]
@@ -161,6 +176,7 @@
   (if (:had-error db)
     (System/exit 65)))
 
+
 (defn run-prompt
   [db]
   (loop [line ""]
@@ -169,6 +185,7 @@
     (let [line (read-line)]
       (run line db))
     (recur "")))
+
 
 (defn -main
   ""
