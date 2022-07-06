@@ -161,10 +161,15 @@
          (do (swap! db update :current-char inc)
              [{:token-type :greater :lexeme ">"} (rest remaining-chars)]))
     \/ (if (= (second remaining-chars) \/)
-         [nil (rest (drop-while #(not= \n %) remaining-chars))]
+         (do 
+             [nil (drop-while #(not= \n %) remaining-chars)])
          (do (swap! db update :current-char inc)
              [{:token-type :slash :lexeme "/"} (rest remaining-chars)]))
-    nil [nil (rest remaining-chars)]
+    \newline  (do (swap! db update :current-char inc)
+                  (swap! db update :current-line inc)
+                  [nil (rest remaining-chars)])
+    nil (do (swap! db update :current-char inc)
+            [nil (rest remaining-chars)])
     [nil (rest remaining-chars)]
   ))
 
