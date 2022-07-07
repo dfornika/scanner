@@ -113,6 +113,13 @@
   [line message db]
   (report! line "" message db))
 
+(defn scan-string
+  [remaining-chars db]
+  (let [string-contents (apply str (take-while #(not= \" %) remaining-chars))
+        string-length (count string-contents)]
+    (do (swap! db update :current-char #(+ string-length %))
+        [{:token-type :string  :lexeme string-contents} (rest (drop-while #(not= \" %) remaining-chars))])))
+
 
 (defn scan-token
   [remaining-chars db]
@@ -168,6 +175,7 @@
     \newline  (do (swap! db update :current-char inc)
                   (swap! db update :current-line inc)
                   [nil (rest remaining-chars)])
+    \" (scan-string (rest remaining-chars) db)
     nil (do (swap! db update :current-char inc)
             [nil (rest remaining-chars)])
     [nil (rest remaining-chars)]
